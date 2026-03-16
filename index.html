@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🤖 Vox AI Assistant</title>
+<style>
+body {
+  margin:0;
+  font-family:'Segoe UI', Arial, sans-serif;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+}
+.title {
+  font-size:2.4em; /* Balanced title size */
+  font-weight:bold;
+  margin-bottom:25px;
+  letter-spacing:2px;
+  text-align:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.title .emoji {
+  font-size:2.2em; /* Slightly smaller robot emoji */
+}
+.title .text {
+  background: linear-gradient(90deg, #ffd700, #ffb300); /* Golden yellow gradient */
+  background-clip: text;              /* Standards-compliant property */
+  -webkit-background-clip: text;      /* WebKit-specific property */
+  -webkit-text-fill-color: transparent;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+}
+.assistant-box {
+  background:#e3f2fd;
+  color:#000;
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+  box-shadow:0 6px 15px rgba(0,0,0,0.4);
+  width:340px;
+}
+#status {
+  font-size:1.2em;
+  margin-bottom:15px;
+}
+#speakBtn {
+  background-color:#ffd54f;
+  border:none;
+  padding:12px 20px;
+  font-size:1.2em;
+  cursor:pointer;
+  border-radius:50%;
+  margin-top:10px;
+  transition:transform 0.3s ease;
+}
+#speakBtn:hover {
+  background-color:#ffca28;
+  transform:scale(1.05);
+}
+.listening {
+  animation:pulse 1.5s infinite;
+  box-shadow:0 0 0 0 rgba(255,213,79,0.7);
+}
+@keyframes pulse {
+  0%{box-shadow:0 0 0 0 rgba(255,213,79,0.7);}
+  70%{box-shadow:0 0 0 20px rgba(255,213,79,0);}
+  100%{box-shadow:0 0 0 0 rgba(255,213,79,0);}
+}
+#response {
+  margin-top:20px;
+  font-size:1.1em;
+  color:#000;
+}
+.footer {
+  margin-top:15px;
+  font-size:0.9em;
+  color:#333;
+}
+</style>
+</head>
+<body>
+
+<!-- Improved Title -->
+<div class="title">
+  <span class="emoji">🤖</span>
+  <span class="text">Vox AI Assistant</span>
+</div>
+
+<div class="assistant-box">
+  <div id="status">Connecting to Vox AI...</div>
+  <button id="speakBtn">🎤</button>
+  <div id="response"></div>
+  <div class="footer">Powered by Vox AI</div>
+</div>
+
+<script>
+const socket = new WebSocket("wss://vox-swbq.onrender.com");
+
+socket.onopen = () => {
+  document.getElementById("status").innerText="Connected to Vox AI";
+};
+
+socket.onmessage = (event) => {
+  const responseText = event.data;
+
+  if (responseText.startsWith("OPEN::")) {
+    const url = responseText.replace("OPEN::", "").trim();
+    window.open(url, "_blank");
+    document.getElementById("status").innerText = "Opening " + url;
+  } else {
+    document.getElementById("response").innerText=responseText;
+    document.getElementById("status").innerText="Response received";
+    const speech = new SpeechSynthesisUtterance(responseText);
+    speech.lang="en-US";
+    speechSynthesis.speak(speech);
+  }
+
+  document.getElementById("speakBtn").classList.remove("listening");
+};
+
+socket.onerror = () => {
+  document.getElementById("status").innerText="Connection error";
+};
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+recognition.lang="en-US";
+recognition.interimResults=false;
+
+recognition.onstart = () => {
+  document.getElementById("status").innerText="Listening...";
+  document.getElementById("speakBtn").classList.add("listening");
+};
+
+recognition.onresult = (event) => {
+  const transcript = event.results[0][0].transcript;
+  document.getElementById("status").innerText="Sending command...";
+  socket.send(transcript);
+};
+
+recognition.onerror = (event) => {
+  document.getElementById("status").innerText="Error: "+event.error;
+  document.getElementById("speakBtn").classList.remove("listening");
+};
+
+document.getElementById("speakBtn").addEventListener("click",()=>{
+  recognition.start();
+});
+</script>
+</body>
+</html>
